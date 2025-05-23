@@ -7,13 +7,23 @@ class IconPaster {
     this.dragOffset = { x: 0, y: 0 };
     this.isDragging = false;
     this.backgroundImage = null;
+    this.bgScale = 1.0;
     this.currentSize = 50;
+    this.bgDrawX = 0;
+    this.bgDrawY = 0;
+    this.bgDrawWidth = 0;
+    this.bgDrawHeight = 0;
 
     this.resizeCanvas();
     this.setupEventListeners();
     this.setupFileInput();
     this.setupFileDrop();
+    this.setupSliders();
 
+    window.addEventListener('resize', () => this.resizeCanvas());
+  }
+
+setupSliders() {
     const sizeSlider = document.getElementById('size-slider');
     sizeSlider.addEventListener('input', (e) => {
       this.currentSize = parseInt(e.target.value);
@@ -25,8 +35,15 @@ class IconPaster {
       this.redraw();
     });
 
-    window.addEventListener('resize', () => this.resizeCanvas());
+    const bgSlider = document.getElementById('bg-slider');
+    if (bgSlider) {
+      bgSlider.addEventListener('input', (e) => {
+        this.bgScale = parseFloat(e.target.value);
+        this.redraw();
+      });
+    }
   }
+
 
   resizeCanvas() {
     const container = document.getElementById('canvas-container');
@@ -229,18 +246,26 @@ class IconPaster {
     return null;
   }
 
-  redraw() {
+ redraw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     if (this.backgroundImage) {
-      const ratio = Math.min(
-        this.canvas.width / this.backgroundImage.width,
-        this.canvas.height / this.backgroundImage.height
-      );
-      const width = this.backgroundImage.width * ratio;
-      const height = this.backgroundImage.height * ratio;
+      const container = document.getElementById('canvas-container');
+      const maxW = container.clientWidth;
+      const maxH = container.clientHeight;
+      const scaleToFit = Math.min(maxW / this.backgroundImage.width, maxH / this.backgroundImage.height);
+      const actualScale = scaleToFit * this.bgScale;
+
+      const width = this.backgroundImage.width * actualScale;
+      const height = this.backgroundImage.height * actualScale;
       const x = (this.canvas.width - width) / 2;
       const y = (this.canvas.height - height) / 2;
+
+      this.bgDrawX = x;
+      this.bgDrawY = y;
+      this.bgDrawWidth = width;
+      this.bgDrawHeight = height;
+
       this.ctx.drawImage(this.backgroundImage, x, y, width, height);
     }
 
@@ -249,15 +274,14 @@ class IconPaster {
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.arc(
-          icon.x + icon.width/2,
-          icon.y + icon.height/2,
-          Math.min(icon.width, icon.height)/2,
+          icon.x + icon.width / 2,
+          icon.y + icon.height / 2,
+          Math.min(icon.width, icon.height) / 2,
           0,
           Math.PI * 2
         );
         this.ctx.closePath();
         this.ctx.clip();
-
         this.ctx.drawImage(icon.image, icon.x, icon.y, icon.width, icon.height);
         this.ctx.restore();
 
@@ -267,9 +291,9 @@ class IconPaster {
           this.ctx.setLineDash([5, 5]);
           this.ctx.beginPath();
           this.ctx.arc(
-            icon.x + icon.width/2,
-            icon.y + icon.height/2,
-            Math.min(icon.width, icon.height)/2 + 3,
+            icon.x + icon.width / 2,
+            icon.y + icon.height / 2,
+            Math.min(icon.width, icon.height) / 2 + 3,
             0,
             Math.PI * 2
           );
@@ -282,11 +306,64 @@ class IconPaster {
 
   saveAsPNG() {
     this.selectedIcon = null;
-    this.redraw();
+
+    const iconsBounds = this.icons.reduce(
+      (acc, icon) => {
+        acc.minX = Math.min(acc.minX, icon.x);
+        acc.minY = Math.min(acc.minY, icon.y);
+        acc.maxX = Math.max(acc.maxX, icon.x + icon.width);
+        acc.maxY = Math.max(acc.maxY, icon.y + icon.height);
+        return acc;
+      },
+      {
+        minX: this.bgDrawX,
+        minY: this.bgDrawY,
+        maxX: this.bgDrawX + this.bgDrawWidth,
+        maxY: this.bgDrawY + this.bgDrawHeight
+      }
+    );
+
+    const exportWidth = Math.ceil(iconsBounds.maxX - iconsBounds.minX);
+    const exportHeight = Math.ceil(iconsBounds.maxY - iconsBounds.minY);
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = exportWidth;
+    tempCanvas.height = exportHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    tempCtx.drawImage(
+      this.backgroundImage,
+      this.bgDrawX - iconsBounds.minX,
+      this.bgDrawY - iconsBounds.minY,
+      this.bgDrawWidth,
+      this.bgDrawHeight
+    );
+
+    this.icons.forEach(icon => {
+      tempCtx.save();
+      tempCtx.beginPath();
+      tempCtx.arc(
+        icon.x - iconsBounds.minX + icon.width / 2,
+        icon.y - iconsBounds.minY + icon.height / 2,
+        Math.min(icon.width, icon.height) / 2,
+        0,
+        Math.PI * 2
+      );
+      tempCtx.closePath();
+      tempCtx.clip();
+      tempCtx.drawImage(
+        icon.image,
+        icon.x - iconsBounds.minX,
+        icon.y - iconsBounds.minY,
+        icon.width,
+        icon.height
+      );
+      tempCtx.restore();
+    });
 
     const link = document.createElement('a');
     link.download = 'icon-paster.png';
-    link.href = this.canvas.toDataURL('image/png');
+    link.href = tempCanvas.toDataURL('image/png');
     link.click();
   }
 }

@@ -93,6 +93,26 @@
   box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
 }
 
+.bg-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f3f5;
+  border-radius: 6px;
+  height: 40px;
+  padding: 0 12px;
+}
+
+.bg-control span {
+  font-size: 14px;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.bg-control input {
+  width: 120px;
+}
+
 @media (max-width: 768px) {
   #toolbar {
     gap: 8px;
