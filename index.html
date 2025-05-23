@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Icon Paster</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { margin: 0; font-family: Arial; }
+    #container { display: flex; flex-direction: column; height: 100vh; }
+    #toolbar { 
+      padding: 10px; 
+      background: #f0f0f0; 
+      display: flex; 
+      gap: 10px;
+      align-items: center;
+    }
+    #canvas-container { flex: 1; position: relative; overflow: hidden; }
+    #canvas { display: block; background: white; transition: border 0.2s; }
+    .size-control { display: flex; align-items: center; gap: 5px; }
+    .size-control input { width: 100px; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="toolbar">
+      <button id="load-btn">背景画像選択</button>
+      <button id="delete-btn">🗑️削除</button>
+      <div class="drop-hint">アイコンをドラッグ＆ドロップすれば追加できます</div>
+      <div class="size-control">
+        <span>アイコンサイズ:</span>
+        <input type="range" id="size-slider" min="10" max="200" value="50">
+      </div>
+      <button id="save-btn">PNGで保存</button>
+    </div>
+    <div id="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
